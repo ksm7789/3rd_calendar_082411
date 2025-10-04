@@ -189,24 +189,61 @@
         }
         
         @media (max-width: 768px) {
+            body {
+                padding: 0;
+                margin: 0;
+                height: 100%;
+                overflow: hidden;
+            }
+            
+            .calendar-container {
+                width: 100vw;
+                height: 100vh;
+                max-width: 100%;
+                margin: 0;
+                border-radius: 0;
+                display: flex;
+                flex-direction: column;
+                overflow: hidden;
+            }
+            
+            .header {
+                flex: 0 0 auto;
+                height: clamp(90px, 22vh, 150px);
+                min-height: unset;
+                padding: 14px 10px;
+            }
+            
             .weekday {
                 padding: 10px 4px;
                 font-size: 0.8rem;
             }
             
+            .weekdays {
+                flex: 0 0 36px;
+            }
+            
+            .calendar-grid {
+                flex: 1 1 auto;
+                display: grid;
+                grid-template-columns: repeat(7, 1fr);
+                grid-template-rows: repeat(6, 1fr);
+                min-height: 0;
+            }
+            
             .calendar-day {
-                min-height: 80px;
-                padding: 8px 4px;
+                min-height: 0 !important;
+                padding: 6px 3px;
             }
             
             .day-number {
                 font-size: 1rem;
-                margin-bottom: 5px;
+                margin-bottom: 4px;
             }
             
             .event {
-                font-size: 0.65rem;
-                padding: 1px 4px;
+                font-size: 0.6rem;
+                padding: 1px 3px;
                 margin-bottom: 1px;
             }
         }
