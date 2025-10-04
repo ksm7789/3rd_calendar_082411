@@ -273,6 +273,15 @@
             max-width: 100%;
         }
         
+        .event.color-blue { background: #e3f2fd; color: #1976d2; }
+        .event.color-green { background: #e8f5e9; color: #2e7d32; }
+        .event.color-orange { background: #fff3e0; color: #e65100; }
+        .event.color-purple { background: #f3e5f5; color: #7b1fa2; }
+        .event.color-red { background: #ffebee; color: #c62828; }
+        .event.color-yellow { background: #fffde7; color: #f57f17; }
+        .event.color-pink { background: #fce4ec; color: #c2185b; }
+        .event.color-teal { background: #e0f2f1; color: #00695c; }
+        
         .event:hover {
             background: #bbdefb;
             transform: scale(1.05);
@@ -553,6 +562,49 @@
         #icsFileInput {
             display: none;
         }
+        
+        .color-picker {
+            margin-bottom: 15px;
+        }
+        
+        .color-options {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-top: 8px;
+        }
+        
+        .color-option {
+            width: 100%;
+            height: 40px;
+            border-radius: 8px;
+            cursor: pointer;
+            border: 3px solid transparent;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+        }
+        
+        .color-option:hover {
+            transform: scale(1.05);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+        
+        .color-option.selected {
+            border-color: #333;
+            box-shadow: 0 0 0 2px white, 0 0 0 4px #333;
+        }
+        
+        .color-option.blue { background: #e3f2fd; color: #1976d2; }
+        .color-option.green { background: #e8f5e9; color: #2e7d32; }
+        .color-option.orange { background: #fff3e0; color: #e65100; }
+        .color-option.purple { background: #f3e5f5; color: #7b1fa2; }
+        .color-option.red { background: #ffebee; color: #c62828; }
+        .color-option.yellow { background: #fffde7; color: #f57f17; }
+        .color-option.pink { background: #fce4ec; color: #c2185b; }
+        .color-option.teal { background: #e0f2f1; color: #00695c; }
     </style>
 </head>
 <body>
@@ -592,6 +644,20 @@
             </div>
             
             <div class="existing-events" id="existingEvents"></div>
+            
+            <div class="color-picker">
+                <label class="form-label">일정 색상</label>
+                <div class="color-options">
+                    <div class="color-option blue selected" data-color="blue" onclick="selectColor('blue')">파랑</div>
+                    <div class="color-option green" data-color="green" onclick="selectColor('green')">초록</div>
+                    <div class="color-option orange" data-color="orange" onclick="selectColor('orange')">주황</div>
+                    <div class="color-option purple" data-color="purple" onclick="selectColor('purple')">보라</div>
+                    <div class="color-option red" data-color="red" onclick="selectColor('red')">빨강</div>
+                    <div class="color-option yellow" data-color="yellow" onclick="selectColor('yellow')">노랑</div>
+                    <div class="color-option pink" data-color="pink" onclick="selectColor('pink')">분홍</div>
+                    <div class="color-option teal" data-color="teal" onclick="selectColor('teal')">청록</div>
+                </div>
+            </div>
             
             <div class="form-group">
                 <label class="form-label">일정 입력</label>
@@ -639,6 +705,7 @@
         let currentDate = new Date();
         let displayDate = new Date();
         let selectedDate = null;
+        let selectedColor = 'blue'; // 기본 색상
         let events = {};
         let holidaysData = {};
         
@@ -816,6 +883,32 @@
             }
         }
 
+        // 색상 배경 가져오기
+        function getColorBackground(color) {
+            const colors = {
+                'blue': '#e3f2fd',
+                'green': '#e8f5e9',
+                'orange': '#fff3e0',
+                'purple': '#f3e5f5',
+                'red': '#ffebee',
+                'yellow': '#fffde7',
+                'pink': '#fce4ec',
+                'teal': '#e0f2f1'
+            };
+            return colors[color] || colors['blue'];
+        }
+
+        // 색상 선택
+        window.selectColor = function(color) {
+            selectedColor = color;
+            // 모든 색상 옵션에서 selected 클래스 제거
+            document.querySelectorAll('.color-option').forEach(option => {
+                option.classList.remove('selected');
+            });
+            // 선택한 색상에 selected 클래스 추가
+            document.querySelector(`.color-option[data-color="${color}"]`).classList.add('selected');
+        }
+
         // 오늘로 이동
         window.goToToday = function() {
             const today = new Date();
@@ -896,7 +989,8 @@
                 if (events[dateKey]) {
                     events[dateKey].forEach(event => {
                         const eventText = typeof event === 'string' ? event : event.text;
-                        eventsHTML += `<div class="event">${eventText}</div>`;
+                        const eventColor = typeof event === 'object' && event.color ? event.color : 'blue';
+                        eventsHTML += `<div class="event color-${eventColor}">${eventText}</div>`;
                     });
                 }
                 
@@ -942,6 +1036,9 @@
                 eventInput.value = '';
             }
             
+            // 색상 초기화
+            selectColor('blue');
+            
             const modal = document.getElementById('eventModal');
             if (modal) {
                 modal.style.display = 'block';
@@ -983,9 +1080,13 @@
             if (events[dateKey] && events[dateKey].length > 0) {
                 events[dateKey].forEach((event, index) => {
                     const eventText = typeof event === 'string' ? event : event.text;
+                    const eventColor = typeof event === 'object' && event.color ? event.color : 'blue';
                     html += `
                         <div class="existing-event">
-                            <span>${eventText}</span>
+                            <span style="display: flex; align-items: center; gap: 8px;">
+                                <span style="width: 12px; height: 12px; border-radius: 3px; background: ${getColorBackground(eventColor)}; flex-shrink: 0;"></span>
+                                ${eventText}
+                            </span>
                             <button class="event-delete-btn" onclick="deleteEvent('${dateKey}', ${index})">삭제</button>
                         </div>
                     `;
@@ -1017,7 +1118,11 @@
                 events[dateKey] = [];
             }
             
-            events[dateKey].push(text);
+            // 색상 정보와 함께 저장
+            events[dateKey].push({
+                text: text,
+                color: selectedColor
+            });
             
             // Firebase에 저장
             if (isFirebaseConnected && db) {
@@ -1039,6 +1144,8 @@
             }
 
             input.value = '';
+            // 색상 초기화
+            selectColor('blue');
             generateCalendar();
             showExistingEvents();
         }
