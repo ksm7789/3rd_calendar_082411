@@ -39,10 +39,6 @@
             justify-content: center;
         }
         
-        .school-name {
-            display: none;
-        }
-        
         .header::before {
             content: '';
             position: absolute;
@@ -80,19 +76,15 @@
             .header h1 {
                 font-size: 1.8rem;
                 margin-bottom: 8px;
-                text-align: center;
-                width: 100%;
             }
             
             .header .current-date {
                 font-size: 1rem;
-                text-align: center;
             }
             
             .header .current-time {
                 font-size: 0.9rem !important;
                 margin-top: 5px !important;
-                text-align: center;
             }
         }
         
@@ -286,27 +278,10 @@
             transform: scale(1.05);
         }
         
-        .event.shared {
-            background: #fff3e0;
-            color: #f57c00;
-            border-left: 3px solid #ff9800;
-        }
-        
-        .event.shared:hover {
-            background: #ffe0b2;
-        }
-        
-        .event.shared::after {
-            content: '👥';
-            position: absolute;
-            right: 2px;
-            top: 1px;
-            font-size: 0.6rem;
-        }
-        
         .holiday-event {
             background: #ffebee;
             color: #c62828;
+            font-weight: 600;
         }
         
         .connection-status {
@@ -330,7 +305,6 @@
             color: white;
         }
         
-        /* 모달 스타일 */
         .modal {
             display: none;
             position: fixed;
@@ -438,6 +412,7 @@
             gap: 10px;
             justify-content: center;
             margin-top: 25px;
+            flex-wrap: wrap;
         }
         
         .btn {
@@ -514,6 +489,70 @@
         .event-delete-btn:hover {
             background: #c82333;
         }
+        
+        .import-export-section {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-top: 2px solid #e0e0e0;
+        }
+        
+        .import-export-section h4 {
+            margin-bottom: 10px;
+            color: #555;
+            font-size: 0.9rem;
+        }
+        
+        .import-export-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .btn-small {
+            padding: 8px 16px;
+            font-size: 0.85rem;
+            min-width: auto;
+        }
+        
+        .btn-import {
+            background: #28a745;
+            color: white;
+        }
+        
+        .btn-import:hover {
+            background: #218838;
+        }
+        
+        .btn-export {
+            background: #17a2b8;
+            color: white;
+        }
+        
+        .btn-export:hover {
+            background: #138496;
+        }
+        
+        .file-input-label {
+            display: inline-block;
+            padding: 8px 16px;
+            background: #28a745;
+            color: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.2s ease;
+        }
+        
+        .file-input-label:hover {
+            background: #218838;
+            transform: translateY(-1px);
+        }
+        
+        #icsFileInput {
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -526,12 +565,9 @@
                 현재 시간: <span id="current-time"></span>
             </div>
             <div class="nav-buttons">
-                <!-- 데스크톱용: 이전달 + 오늘 + 다음달 -->
-                <div class="desktop-nav">
-                    <button class="nav-btn" onclick="changeMonth(-1)" id="prevBtn">◀ 이전</button>
-                    <button class="nav-btn today-btn" onclick="goToToday()">오늘</button>
-                    <button class="nav-btn" onclick="changeMonth(1)" id="nextBtn">다음 ▶</button>
-                </div>
+                <button class="nav-btn" onclick="changeMonth(-1)" id="prevBtn">◀ 이전</button>
+                <button class="nav-btn today-btn" onclick="goToToday()">오늘</button>
+                <button class="nav-btn" onclick="changeMonth(1)" id="nextBtn">다음 ▶</button>
             </div>
         </div>
         
@@ -604,6 +640,7 @@
         let displayDate = new Date();
         let selectedDate = null;
         let events = {};
+        let holidaysData = {};
         
         const monthNames = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'];
         const weekdayNames = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
@@ -621,25 +658,6 @@
             'linear-gradient(135deg, #efebe9 0%, #d7ccc8 100%)',
             'linear-gradient(135deg, #e8f4f8 0%, #b3d9ff 100%)'
         ];
-        
-        // 2025년 공휴일 데이터
-        const holidays2025 = {
-            '0-1': '신정',
-            '0-28': '설날 연휴',
-            '0-29': '설날',
-            '0-30': '설날 연휴',
-            '2-1': '삼일절',
-            '4-5': '어린이날·부처님오신날',
-            '4-6': '어린이날 대체공휴일',
-            '5-6': '현충일',
-            '7-15': '광복절',
-            '9-3': '개천절',
-            '9-6': '추석연휴',
-            '9-7': '추석',
-            '9-8': '추석연휴',
-            '9-9': '한글날',
-            '11-25': '성탄절'
-        };
 
         // 연결 상태 표시 업데이트
         function updateConnectionStatus(connected) {
@@ -688,7 +706,93 @@
         // 공휴일 확인
         function getHoliday(date) {
             const key = `${date.getMonth()}-${date.getDate()}`;
-            return holidays2025[key] || null;
+            return holidaysData[key] || null;
+        }
+
+        // 공공데이터 포털 API에서 공휴일 데이터 가져오기
+        async function fetchHolidays(year) {
+            // ⚠️ 여기에 공공데이터 포털에서 발급받은 API 키를 입력하세요
+            const serviceKey = 'YOUR_API_KEY_HERE'; // 본인의 API 키로 교체 필요
+            
+            if (serviceKey === 'YOUR_API_KEY_HERE') {
+                console.warn('⚠️ API 키가 설정되지 않았습니다. 기본 공휴일 데이터를 사용합니다.');
+                loadDefaultHolidays(year);
+                return;
+            }
+            
+            try {
+                // 공공데이터 포털이 복구되면 이 URL 사용
+                const url = `https://apis.data.go.kr/B090041/openapi/service/SpcdeInfoService/getRestDeInfo?serviceKey=${serviceKey}&solYear=${year}&numOfRows=100&_type=json`;
+                
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (data.response && data.response.body && data.response.body.items) {
+                    const items = data.response.body.items.item;
+                    const holidays = Array.isArray(items) ? items : [items];
+                    
+                    // 기존 데이터 초기화
+                    holidaysData = {};
+                    
+                    holidays.forEach(holiday => {
+                        const locdate = String(holiday.locdate);
+                        const month = parseInt(locdate.substring(4, 6)) - 1; // 0-based
+                        const day = parseInt(locdate.substring(6, 8));
+                        const key = `${month}-${day}`;
+                        holidaysData[key] = holiday.dateName;
+                    });
+                    
+                    console.log(`✅ ${year}년 공휴일 ${holidays.length}개 로드 완료`);
+                    generateCalendar();
+                } else {
+                    console.error('공휴일 데이터를 찾을 수 없습니다:', data);
+                    loadDefaultHolidays(year);
+                }
+            } catch (error) {
+                console.error('공휴일 API 호출 실패:', error);
+                // API 실패 시 기본 공휴일 사용
+                loadDefaultHolidays(year);
+            }
+        }
+
+        // 기본 공휴일 (API 실패 시 또는 2025년 데이터)
+        function loadDefaultHolidays(year) {
+            // 2025년 공휴일 (정확한 음력 날짜 포함)
+            if (year === 2025) {
+                holidaysData = {
+                    '0-1': '신정',
+                    '0-28': '설날 연휴',
+                    '0-29': '설날',
+                    '0-30': '설날 연휴',
+                    '2-1': '삼일절',
+                    '2-3': '삼일절 대체공휴일',
+                    '4-5': '어린이날·부처님오신날',
+                    '4-6': '대체공휴일',
+                    '5-6': '현충일',
+                    '7-15': '광복절',
+                    '9-3': '개천절',
+                    '9-5': '추석 연휴',
+                    '9-6': '추석',
+                    '9-7': '추석 연휴',
+                    '9-8': '추석 대체공휴일',
+                    '9-9': '한글날',
+                    '11-25': '성탄절'
+                };
+                console.log('✅ 2025년 공휴일 데이터 로드 (음력 명절 포함)');
+            } else {
+                // 다른 연도는 음력 제외 기본 공휴일만
+                holidaysData = {
+                    '0-1': '신정',
+                    '2-1': '삼일절',
+                    '4-5': '어린이날',
+                    '5-6': '현충일',
+                    '7-15': '광복절',
+                    '9-3': '개천절',
+                    '9-9': '한글날',
+                    '11-25': '성탄절'
+                };
+                console.log(`⚠️ ${year}년 기본 공휴일 사용 중 (음력 명절 제외)`);
+            }
         }
 
         // 버튼 텍스트 업데이트
@@ -702,7 +806,6 @@
             const nextBtn = document.getElementById('nextBtn');
             
             if (prevBtn && nextBtn) {
-                // 모바일에서는 간단하게, 데스크톱에서는 월 이름 표시
                 if (window.innerWidth <= 768) {
                     prevBtn.innerHTML = `◀`;
                     nextBtn.innerHTML = `▶`;
@@ -720,117 +823,16 @@
             generateCalendar();
         }
 
-        // 스와이프 기능 변수
-        let startX = 0;
-        let startY = 0;
-        let isDragging = false;
-        let currentTranslateX = 0;
-
-        // 터치 시작
-        function handleTouchStart(e) {
-            startX = e.touches[0].clientX;
-            startY = e.touches[0].clientY;
-            isDragging = true;
-        }
-
-        // 터치 이동
-        function handleTouchMove(e) {
-            if (!isDragging) return;
-            
-            const currentX = e.touches[0].clientX;
-            const currentY = e.touches[0].clientY;
-            const deltaX = currentX - startX;
-            const deltaY = currentY - startY;
-            
-            // 세로 스크롤이 더 큰 경우 스와이프 취소 (스크롤 우선)
-            if (Math.abs(deltaY) > Math.abs(deltaX)) {
-                isDragging = false;
-                return;
-            }
-            
-            // 가로 스와이프 처리
-            e.preventDefault();
-            currentTranslateX = deltaX;
-            
-            const grid = document.getElementById('calendar-grid');
-            if (grid && Math.abs(deltaX) > 50) {
-                grid.style.transform = `translateX(${deltaX * 0.3}px)`;
-                grid.style.opacity = Math.max(0.5, 1 - Math.abs(deltaX) / 300);
-            }
-        }
-
-        // 터치 끝
-        function handleTouchEnd(e) {
-            if (!isDragging) return;
-            isDragging = false;
-            
-            const grid = document.getElementById('calendar-grid');
-            if (grid) {
-                grid.style.transform = '';
-                grid.style.opacity = '';
-            }
-            
-            // 가로 스와이프 거리 판단
-            if (Math.abs(currentTranslateX) > 80) {
-                if (currentTranslateX > 0) {
-                    // 오른쪽 스와이프 - 이전 달
-                    changeMonth(-1);
-                } else {
-                    // 왼쪽 스와이프 - 다음 달
-                    changeMonth(1);
-                }
-            }
-            
-            currentTranslateX = 0;
-        }
-
-        // 마우스 이벤트 (데스크톱)
-        let isMouseDragging = false;
-        let mouseStartX = 0;
-
-        function handleMouseDown(e) {
-            mouseStartX = e.clientX;
-            isMouseDragging = true;
-            e.preventDefault();
-        }
-
-        function handleMouseMove(e) {
-            if (!isMouseDragging) return;
-            
-            const deltaX = e.clientX - mouseStartX;
-            const grid = document.getElementById('calendar-grid');
-            
-            if (grid && Math.abs(deltaX) > 20) {
-                grid.style.transform = `translateX(${deltaX * 0.2}px)`;
-                grid.style.opacity = Math.max(0.7, 1 - Math.abs(deltaX) / 400);
-            }
-        }
-
-        function handleMouseUp(e) {
-            if (!isMouseDragging) return;
-            isMouseDragging = false;
-            
-            const deltaX = e.clientX - mouseStartX;
-            const grid = document.getElementById('calendar-grid');
-            
-            if (grid) {
-                grid.style.transform = '';
-                grid.style.opacity = '';
-            }
-            
-            if (Math.abs(deltaX) > 100) {
-                if (deltaX > 0) {
-                    changeMonth(-1);
-                } else {
-                    changeMonth(1);
-                }
-            }
-        }
-
         // 달력 생성
         function generateCalendar() {
             const year = displayDate.getFullYear();
             const month = displayDate.getMonth();
+            
+            // 연도가 바뀌면 공휴일 다시 로드
+            if (!holidaysData || Object.keys(holidaysData).length === 0 || window.lastLoadedYear !== year) {
+                fetchHolidays(year);
+                window.lastLoadedYear = year;
+            }
             
             // 헤더 업데이트
             const monthYearEl = document.getElementById('monthYear');
@@ -1041,6 +1043,109 @@
             showExistingEvents();
         }
 
+        // ICS 파일로 내보내기
+        window.exportToICS = function() {
+            let icsContent = 'BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//공유 캘린더//KR\r\nCALSCALE:GREGORIAN\r\n';
+            
+            Object.keys(events).forEach(dateKey => {
+                const [year, month, day] = dateKey.split('-').map(Number);
+                const eventDate = new Date(year, month - 1, day);
+                
+                events[dateKey].forEach(event => {
+                    const eventText = typeof event === 'string' ? event : event.text;
+                    const dateStr = `${year}${String(month).padStart(2, '0')}${String(day).padStart(2, '0')}`;
+                    
+                    icsContent += 'BEGIN:VEVENT\r\n';
+                    icsContent += `DTSTART;VALUE=DATE:${dateStr}\r\n`;
+                    icsContent += `DTEND;VALUE=DATE:${dateStr}\r\n`;
+                    icsContent += `SUMMARY:${eventText.replace(/\n/g, '\\n')}\r\n`;
+                    icsContent += `DTSTAMP:${new Date().toISOString().replace(/[-:]/g, '').split('.')[0]}Z\r\n`;
+                    icsContent += `UID:${dateKey}-${Date.now()}@shared-calendar\r\n`;
+                    icsContent += 'END:VEVENT\r\n';
+                });
+            });
+            
+            icsContent += 'END:VCALENDAR';
+            
+            const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `공유캘린더_${new Date().toISOString().split('T')[0]}.ics`;
+            link.click();
+            
+            alert('ICS 파일로 내보내기 완료!\n구글/네이버 캘린더에서 가져오기 할 수 있습니다.');
+        }
+
+        // ICS 파일 가져오기
+        window.importICS = async function(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            try {
+                const text = await file.text();
+                const lines = text.split(/\r?\n/);
+                
+                let inEvent = false;
+                let currentEvent = {};
+                let importedCount = 0;
+                
+                for (let line of lines) {
+                    line = line.trim();
+                    
+                    if (line === 'BEGIN:VEVENT') {
+                        inEvent = true;
+                        currentEvent = {};
+                    } else if (line === 'END:VEVENT') {
+                        if (currentEvent.date && currentEvent.summary) {
+                            const dateKey = currentEvent.date;
+                            if (!events[dateKey]) {
+                                events[dateKey] = [];
+                            }
+                            events[dateKey].push(currentEvent.summary);
+                            importedCount++;
+                        }
+                        inEvent = false;
+                    } else if (inEvent) {
+                        if (line.startsWith('DTSTART')) {
+                            const dateMatch = line.match(/(\d{4})(\d{2})(\d{2})/);
+                            if (dateMatch) {
+                                const [, year, month, day] = dateMatch;
+                                currentEvent.date = `${year}-${parseInt(month)}-${parseInt(day)}`;
+                            }
+                        } else if (line.startsWith('SUMMARY:')) {
+                            currentEvent.summary = line.substring(8).replace(/\\n/g, '\n');
+                        }
+                    }
+                }
+                
+                if (importedCount > 0) {
+                    // Firebase에 저장
+                    if (isFirebaseConnected && db) {
+                        for (const [dateKey, eventList] of Object.entries(events)) {
+                            try {
+                                await setDoc(doc(db, "events", dateKey), { 
+                                    items: eventList,
+                                    lastUpdated: new Date().toISOString()
+                                });
+                            } catch (error) {
+                                console.error("Firebase 저장 실패:", dateKey, error);
+                            }
+                        }
+                    }
+                    
+                    generateCalendar();
+                    alert(`${importedCount}개의 일정을 가져왔습니다!`);
+                } else {
+                    alert('가져올 수 있는 일정이 없습니다.');
+                }
+                
+                event.target.value = '';
+            } catch (error) {
+                console.error('ICS 파일 읽기 실패:', error);
+                alert('ICS 파일을 읽는데 실패했습니다.');
+            }
+        }
+
         // 개별 일정 삭제
         window.deleteEvent = async function(dateKey, index) {
             if (!selectedDate || !events[dateKey] || index < 0 || index >= events[dateKey].length) return;
@@ -1150,22 +1255,12 @@
             updateTime();
             setInterval(updateTime, 1000);
             
+            // 현재 연도 공휴일 로드
+            const currentYear = new Date().getFullYear();
+            fetchHolidays(currentYear);
+            
             // 달력 초기 생성
             generateCalendar();
-            
-            // 터치 이벤트 리스너 (모바일에서만 활성화)
-            const calendarContainer = document.querySelector('.calendar-container');
-            if (calendarContainer && window.innerWidth <= 768) {
-                // 터치 이벤트 (모바일)
-                calendarContainer.addEventListener('touchstart', handleTouchStart, { passive: false });
-                calendarContainer.addEventListener('touchmove', handleTouchMove, { passive: false });
-                calendarContainer.addEventListener('touchend', handleTouchEnd, { passive: true });
-            } else if (calendarContainer) {
-                // 마우스 이벤트 (데스크톱 - 선택사항)
-                calendarContainer.addEventListener('mousedown', handleMouseDown);
-                document.addEventListener('mousemove', handleMouseMove);
-                document.addEventListener('mouseup', handleMouseUp);
-            }
             
             // 키보드 단축키
             document.addEventListener('keydown', function(e) {
@@ -1193,11 +1288,6 @@
                     setupFirebaseSync();
                 }
             }, 1000);
-        });
-
-        // 페이지 언로드 전 정리
-        window.addEventListener('beforeunload', function() {
-            // Firebase 리스너 정리는 자동으로 처리됩니다
         });
 
         // 네트워크 상태 모니터링
