@@ -147,6 +147,7 @@
             grid-template-columns: repeat(7, 1fr);
             background: #f8f9fa;
             border-bottom: 1px solid #e9ecef;
+            width: 100%;
         }
         
         .weekday {
@@ -156,7 +157,6 @@
             font-size: 0.9rem;
             color: #495057;
             border-right: 1px solid #e9ecef;
-            box-sizing: border-box;
         }
         
         .weekday:last-child {
@@ -174,6 +174,7 @@
         .calendar-grid {
             display: grid;
             grid-template-columns: repeat(7, 1fr);
+            width: 100%;
         }
         
         .calendar-day {
@@ -185,18 +186,17 @@
             transition: all 0.2s ease;
             position: relative;
             background: white;
-            box-sizing: border-box;
         }
         
         @media (max-width: 768px) {
             .weekday {
-                padding: 12px 3px;
+                padding: 10px 4px;
                 font-size: 0.8rem;
             }
             
             .calendar-day {
                 min-height: 80px;
-                padding: 8px 3px;
+                padding: 8px 4px;
             }
             
             .day-number {
